@@ -1,3 +1,6 @@
 {
+  "coverPropertyName": "Thumbnail",
+  "hideMetadataContainer": true,
+  "showThumbnail": true,
   "propertyName": "Thumbnail"
 }

@@ -1,100 +1,106 @@
-import { Plugin, TFile } from 'obsidian';
-import { BetterFilePropertiesViewSettings, DEFAULT_SETTINGS, BetterFilePropertiesViewSettingTab } from './settings';
+import { Plugin, TFile } from 'obsidian'
+import { BetterFilePropertiesViewSettings, DEFAULT_SETTINGS, BetterFilePropertiesViewSettingTab } from './settings'
 
 export default class BetterFilePropertiesViewPlugin extends Plugin {
-	settings: BetterFilePropertiesViewSettings;
+	settings: BetterFilePropertiesViewSettings
 
 	async onload() {
-		await this.loadSettings();
-		this.addSettingTab(new BetterFilePropertiesViewSettingTab(this.app, this));
+		await this.loadSettings()
+		this.addSettingTab(new BetterFilePropertiesViewSettingTab(this.app, this))
 
 		this.registerEvent(
 			this.app.workspace.on('active-leaf-change', () => {
-				this.updateFilePropertiesView();
+				this.updateFilePropertiesView()
+				this.updateMetadataContainer()
 			})
-		);
+		)
 
 		this.registerEvent(
 			this.app.metadataCache.on('changed', () => {
-				this.updateFilePropertiesView();
+				this.updateFilePropertiesView()
+				this.updateMetadataContainer()
 			})
-		);
+		)
 
-		this.updateFilePropertiesView();
+		this.updateFilePropertiesView()
+		this.updateMetadataContainer()
 	}
 
 	onunload() {
-        document.body.removeClass('hide-metadata-container')
-		this.removePropertyImage();
+        this.resetMetadataContainer()
+		this.removePropertyImage()
 	}
 
 	public updateFilePropertiesView() {
-		this.removePropertyImage();
+		this.removePropertyImage()
 
-		const activeLeaf = this.app.workspace.activeLeaf;
-		if (!activeLeaf) return;
+		const activeLeaf = this.app.workspace.activeLeaf
+		if (!activeLeaf) return
 
-		const file = this.app.workspace.getActiveFile();
-		if (!file || !(file instanceof TFile)) return;
+		const file = this.app.workspace.getActiveFile()
+		if (!file || !(file instanceof TFile)) return
 
-		const metadata = this.app.metadataCache.getFileCache(file);
-		if (!metadata || !metadata.frontmatter) return;
+		const metadata = this.app.metadataCache.getFileCache(file)
+		if (!metadata || !metadata.frontmatter) return
 
-		const propertyName = this.settings.propertyName;
-		const propertyValue = metadata.frontmatter[propertyName];
+		const converPropertyName = this.settings.coverPropertyName
+		const cover = metadata.frontmatter[converPropertyName]
 
-		if (!propertyValue) return;
+		if (!cover) return
 
 		// Find the file properties view container
 		const container = document.querySelector(
 			'div.workspace-leaf-content[data-type="file-properties"] div.view-content'
-		);
-		if (!container) return;
+		)
+		if (!container) return
 
 		// Create and append the image
-		const imageContainer = document.createElement('div');
-		imageContainer.className = 'better-file-properties-image-container';
+		const imageContainer = document.createElement('div')
+		imageContainer.className = 'better-file-properties-image-container'
 
-		const image = document.createElement('img');
-		image.className = 'better-file-properties-image';
-		image.src = propertyValue;
+		const image = document.createElement('img')
+		image.className = 'better-file-properties-image'
+		image.src = cover
 
 		// If thumbnail does not exist, remove element
 		image.onerror = () => {
-			imageContainer.remove();
-		};
+			imageContainer.remove()
+		}
 
-		imageContainer.appendChild(image);
-		container.prepend(imageContainer);
-        this.updateMetadataContainer()
+		imageContainer.appendChild(image)
+		container.prepend(imageContainer)
 	}
 
-    private updateMetadataContainer() {
-        document.body.removeClass('hide-metadata-container')
-        if(this.isFilePropertiesViewActive()) {
+    public updateMetadataContainer() {
+        this.resetMetadataContainer()
+        if(this.settings.hideMetadataContainer && this.isFilePropertiesViewActive()) {
             document.body.addClass('hide-metadata-container')
         }
     }
 
     private isFilePropertiesViewActive() {
         const el = document.querySelector('div.workspace-tab-header[data-type="file-properties"]')
-        return el && el.hasClass('is-active')
+        return el?.hasClass('is-active')
     }
+
+	private resetMetadataContainer() {
+		document.body.removeClass('hide-metadata-container')
+	}
 
 	private removePropertyImage() {
 		const imageContainer = document.querySelector(
 			'div.workspace-leaf-content[data-type="file-properties"] div.view-content .better-file-properties-image-container'
-		);
+		)
 		if (imageContainer) {
-			imageContainer.remove();
+			imageContainer.remove()
 		}
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData())
 	}
 
 	async saveSettings() {
-		await this.saveData(this.settings);
+		await this.saveData(this.settings)
 	}
 }
