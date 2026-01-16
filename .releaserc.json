@@ -9,7 +9,7 @@
         "assets": [
           "main.js",
           "manifest.json",
-          "style.css"
+          "styles.css"
         ],
         "successComment": false,
         "failComment": false

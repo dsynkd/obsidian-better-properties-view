@@ -35,19 +35,22 @@ export class BetterFilePropertiesViewSettingTab extends PluginSettingTab {
 					this.plugin.settings.showThumbnail = value;
 					await this.plugin.saveSettings();
 					this.plugin.updateFilePropertiesView();
+					this.display();
 				}));
 			
-		new Setting(containerEl)
-			.setName('Thumbnail Property Name')
-			.setDesc('The frontmatter property name to look for and display as an image')
-			.addText(text => text
-				.setPlaceholder('cover')
-				.setValue(this.plugin.settings.coverPropertyName)
-				.onChange(async (value) => {
-					this.plugin.settings.coverPropertyName = value || 'cover';
-					await this.plugin.saveSettings();
-					this.plugin.updateFilePropertiesView();
-				}));
+		if (this.plugin.settings.showThumbnail) {
+			new Setting(containerEl)
+				.setName('Thumbnail Property Name')
+				.setDesc('The frontmatter property name to look for and display as an image')
+				.addText(text => text
+					.setPlaceholder('cover')
+					.setValue(this.plugin.settings.coverPropertyName)
+					.onChange(async (value) => {
+						this.plugin.settings.coverPropertyName = value || 'cover';
+						await this.plugin.saveSettings();
+						this.plugin.updateFilePropertiesView();
+					}));
+		}
         
 		new Setting(containerEl)
 			.setName('Hide metadata container')
