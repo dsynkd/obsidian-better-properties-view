@@ -3,6 +3,7 @@ import { BetterFilePropertiesViewSettings, DEFAULT_SETTINGS, BetterFilePropertie
 
 export default class BetterFilePropertiesViewPlugin extends Plugin {
 	settings: BetterFilePropertiesViewSettings
+	private lastThumbnailKey: string | null = null
 
 	async onload() {
 		await this.loadSettings()
@@ -27,65 +28,84 @@ export default class BetterFilePropertiesViewPlugin extends Plugin {
 	}
 
 	onunload() {
-        this.resetMetadataContainer()
+		document.body.removeClass('hide-metadata-container')
 		this.removePropertyImage()
 	}
 
 	public updateFilePropertiesView() {
-		this.removePropertyImage()
-
-		const activeLeaf = this.app.workspace.activeLeaf
-		if (!activeLeaf) return
+		if (!this.settings.showThumbnail) {
+			this.removePropertyImage()
+			this.lastThumbnailKey = null
+			return
+		}
 
 		const file = this.app.workspace.getActiveFile()
-		if (!file || !(file instanceof TFile)) return
+		if (!file || !(file instanceof TFile)) {
+			this.removePropertyImage()
+			this.lastThumbnailKey = null
+			return
+		}
 
 		const metadata = this.app.metadataCache.getFileCache(file)
-		if (!metadata || !metadata.frontmatter) return
+		if (!metadata || !metadata.frontmatter) {
+			this.removePropertyImage()
+			this.lastThumbnailKey = null
+			return
+		}
 
-		const converPropertyName = this.settings.coverPropertyName
-		const cover = metadata.frontmatter[converPropertyName]
+		const coverKeyPart = this.settings.coverPropertyName
+		const cover = metadata.frontmatter[coverKeyPart]
+		if (cover == null || cover === '') {
+			this.removePropertyImage()
+			this.lastThumbnailKey = null
+			return
+		}
 
-		if (!cover) return
+		const coverStr = typeof cover === 'string' ? cover : String(cover)
+		const thumbnailKey = `${file.path}\0${coverKeyPart}\0${coverStr}`
 
-		// Find the file properties view container
 		const container = document.querySelector(
 			'div.workspace-leaf-content[data-type="file-properties"] div.view-content'
 		)
 		if (!container) return
 
-		// Create and append the image
+		if (this.lastThumbnailKey === thumbnailKey) {
+			const existing = container.querySelector('.better-file-properties-image-container')
+			if (existing?.isConnected) return
+		}
+
+		this.removePropertyImage()
+
 		const imageContainer = document.createElement('div')
 		imageContainer.className = 'better-file-properties-image-container'
 
 		const image = document.createElement('img')
 		image.className = 'better-file-properties-image'
-		image.src = cover
+		image.src = coverStr
 
-		// If thumbnail does not exist, remove element
 		image.onerror = () => {
 			imageContainer.remove()
+			this.lastThumbnailKey = null
 		}
 
 		imageContainer.appendChild(image)
 		container.prepend(imageContainer)
+		this.lastThumbnailKey = thumbnailKey
 	}
 
     public updateMetadataContainer() {
-        this.resetMetadataContainer()
-        if(this.settings.hideMetadataContainer && this.isFilePropertiesViewActive()) {
-            document.body.addClass('hide-metadata-container')
-        }
+        const shouldHide =
+            this.settings.hideMetadataContainer && this.isFilePropertiesViewActive()
+        const isHidden = document.body.classList.contains('hide-metadata-container')
+        if (shouldHide === isHidden) return
+        if (shouldHide) document.body.addClass('hide-metadata-container')
+        else document.body.removeClass('hide-metadata-container')
     }
 
     private isFilePropertiesViewActive() {
         const el = document.querySelector('div.workspace-tab-header[data-type="file-properties"]')
         return el?.hasClass('is-active')
     }
-
-	private resetMetadataContainer() {
-		document.body.removeClass('hide-metadata-container')
-	}
 
 	private removePropertyImage() {
 		const imageContainer = document.querySelector(
